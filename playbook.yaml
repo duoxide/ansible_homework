@@ -1,0 +1,85 @@
+---
+# Playbook for homework
+-
+  hosts: aws
+  user: ubuntu
+  tasks:
+    - name: Checking connection
+      ping:
+        data: pong
+      register: var_ping
+
+    - name: Connection ok, if pong
+      debug:
+        var: var_ping
+
+# Creating users
+    - name: Creating users John, Dace, Mike and Taylor
+      become: true
+      user:
+        name: "{{ item }}"
+      loop:
+        - john
+        - dace
+        - mike
+        - taylor
+
+# Prompt the value for variable "Enter you name" and display the name
+-
+  hosts: aws
+  user: ubuntu
+  vars_prompt:
+    - name: username
+      prompt: Enter your name
+      private: false
+  tasks:
+    - name: The name you entered
+      debug:
+        msg: 'Your name is {{ username }}'
+
+# Installing apache depending on Linux distro
+
+    - name: Installing on CentOS
+      become: true
+      yum:
+        name: httpd
+        state: latest
+      when: ansible_distribution == "CentOS"
+    - name: Installing on Ubuntu
+      become: true
+      apt:
+        name: apache2
+        state: latest
+      when: ansible_distribution == "Ubuntu"
+
+# Placing Jinja2 template to Ubuntu apache document root
+
+    - name: Placing jinja2 template to Ubuntu apache document root
+      become: true
+      template:
+        src: index.j2
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: u=rw,g=r,o=r
+      notify:
+        - restart apache on ubuntu
+        - restart apache on centos
+
+# Restart apache service depending on Linux distro using handler
+
+  handlers:
+    - name: restart apache on centos
+      become: true
+      service:
+        name: httpd
+        state: restarted
+      when: ansible_distribution == "CentOS"
+
+    - name: restart apache on ubuntu
+      become: true
+      service:
+        name: apache2
+        state: restarted
+      when: ansible_distribution == "Ubuntu"
+...
